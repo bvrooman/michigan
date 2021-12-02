@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    michigan (0.1.0)
+    michigan (0.1.1)
 
 GEM
   remote: https://rubygems.org/
