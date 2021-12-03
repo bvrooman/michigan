@@ -11,14 +11,12 @@ module Michigan
         [:id]
       end
 
-      def call(_operation, context, *_args)
-        context[:id] = generate_id
+      def initialize(callable)
+        @callable = callable
       end
 
-      private
-
-      def generate_id
-        SecureRandom.uuid
+      def call(_operation, context, *_args)
+        context[:id] = @callable.call(context, *_args)
       end
     end
   end

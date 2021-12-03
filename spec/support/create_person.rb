@@ -18,6 +18,10 @@ module Support
       raise ValidationError, 'Last name must be provided!' if last_name.nil?
     end
 
+    def id(*_args)
+      '1-2-3'
+    end
+
     def headers(context, *_args)
       {
         request_id: context[:id]

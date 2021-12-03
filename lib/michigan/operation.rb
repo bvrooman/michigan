@@ -12,8 +12,11 @@ require_relative 'middleware/log_request_complete'
 require_relative 'middleware/log_request_start'
 require_relative 'middleware/validate'
 
+require_relative 'error_middleware/log_error'
 require_relative 'error_middleware/log_request_error'
 require_relative 'error_middleware/log_validation_error'
+require_relative 'error_middleware/propagate_error'
+require_relative 'error_middleware/propagate_request_error'
 require_relative 'error_middleware/retry'
 
 module Michigan
@@ -97,6 +100,8 @@ module Michigan
 
     def headers(*_args); end
 
+    def id(*_args); end
+
     def payload(*_args); end
 
     def validate(*_args); end
@@ -115,7 +120,8 @@ module Michigan
       composer.add_middleware(build_headers)
 
       # BuildId
-      build_id = Middleware::BuildId.new
+      id_method = method(:id)
+      build_id = Middleware::BuildId.new(id_method)
       composer.add_middleware(build_id)
 
       # BuildPayload
@@ -141,15 +147,20 @@ module Michigan
     end
 
     def add_default_error_middleware
+      composer.add_error_middleware(ErrorMiddleware::LogError.new)
       composer.add_error_middleware(ErrorMiddleware::LogRequestError.new)
       composer.add_error_middleware(ErrorMiddleware::LogValidationError.new)
 
-      # Retry
-      retriable_errors = self.class.retriable_errors || []
-      retries = self.class.retries || 0
-      retry_delay = self.class.retry_delay || 1
-      retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries, delay: retry_delay)
-      composer.add_error_middleware(retry_middleware)
+      if self.class.retries >= 1
+        retriable_errors = self.class.retriable_errors || []
+        retries = self.class.retries || 0
+        retry_delay = self.class.retry_delay || 1
+        retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries, delay: retry_delay)
+        composer.add_error_middleware(retry_middleware)
+      else
+        composer.add_error_middleware(ErrorMiddleware::PropagateError.new)
+        composer.add_error_middleware(ErrorMiddleware::PropagateRequestError.new)
+      end
     end
   end
 end

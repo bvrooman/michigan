@@ -107,11 +107,12 @@ RSpec.describe Michigan::ErrorMiddleware::Retry, type: :middleware do
         expect(operation.composer.call_queue.queue).to eq [middleware_a, middleware_b, middleware_c, middleware_d]
       end
 
-      it 'enqueues an ErrorPropagation middleware to the error queue if all retries have been exhausted' do
+      it 'enqueues PropagateError and PropagateRequestError middleware to the error queue if all retries have been exhausted' do
         context[:retries] = 3
         retry_middleware.call(operation, context)
-        node = operation.composer.error_queue.queue.last
-        expect(node.producer).to be_an_instance_of(Michigan::ErrorMiddleware::PropagateError)
+        producers = operation.composer.error_queue.queue.map(&:producer)
+        expect(producers).to include(an_instance_of(Michigan::ErrorMiddleware::PropagateError))
+        expect(producers).to include(an_instance_of(Michigan::ErrorMiddleware::PropagateRequestError))
       end
 
       it 'logs that the request failed after n retries if all retries have been exhausted' do
@@ -133,10 +134,11 @@ RSpec.describe Michigan::ErrorMiddleware::Retry, type: :middleware do
         end.to change { context[:retries] }.by 0
       end
 
-      it 'enqueues an ErrorPropagation middleware to the error queue' do
+      it 'enqueues  PropagateError and PropagateRequestError middleware to the error queue' do
         retry_middleware.call(operation, context)
-        node = operation.composer.error_queue.queue.last
-        expect(node.producer).to be_an_instance_of(Michigan::ErrorMiddleware::PropagateError)
+        producers = operation.composer.error_queue.queue.map(&:producer)
+        expect(producers).to include(an_instance_of(Michigan::ErrorMiddleware::PropagateError))
+        expect(producers).to include(an_instance_of(Michigan::ErrorMiddleware::PropagateRequestError))
       end
 
       it 'does not log anything if no retries occurred' do

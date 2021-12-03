@@ -3,12 +3,13 @@
 require 'logger'
 
 require_relative 'propagate_error'
+require_relative 'propagate_request_error'
 
 module Michigan
   module ErrorMiddleware
     class Retry
       def inputs
-        [:log_request_error]
+        %i[log_error log_request_error]
       end
 
       def outputs
@@ -29,7 +30,7 @@ module Michigan
 
         context[:retries] ||= 0
         current_retries = context[:retries]
-        error = context[:error]
+        error = context[:error] || context[:request_error]
 
         if error.nil?
           # The request succeeded
@@ -46,7 +47,12 @@ module Michigan
         else
           # The request failed with a non-retriable error or the number of retries has been exhausted
           @logger.warn("Request failed after #{current_retries} retries.") if current_retries >= 1
+
           node = operation.composer.create_dependency(PropagateError.new)
+          node.prepare
+          operation.composer.error_queue.enqueue_middleware(node)
+
+          node = operation.composer.create_dependency(PropagateRequestError.new)
           node.prepare
           operation.composer.error_queue.enqueue_middleware(node)
         end

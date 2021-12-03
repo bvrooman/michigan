@@ -26,14 +26,16 @@ RSpec.describe Michigan::Operation do
   describe '#call' do
     subject(:operation) { Support::CreatePerson.new }
 
+    let(:logger) { Logger.new($stdout) }
     let(:request_id) { '1-2-3' }
-    let(:build_id_middleware) { Michigan::Middleware::BuildId.new }
 
     before do
-      Support::CreatePerson.retriable_errors = [Support::RetriableRequestError]
+      Michigan.config.logger = logger
+      allow(logger).to receive(:info).and_call_original
+      allow(logger).to receive(:warn).and_call_original
+      allow(logger).to receive(:error).and_call_original
 
-      allow(Michigan::Middleware::BuildId).to receive(:new).and_return(build_id_middleware)
-      allow(build_id_middleware).to receive(:generate_id).and_return(request_id)
+      Support::CreatePerson.retriable_errors = [Support::RetriableRequestError]
 
       stub_request(:any, operation.url).to_return(
         status: 200,
@@ -217,6 +219,72 @@ RSpec.describe Michigan::Operation do
           raise Support::RetriableRequestError, 'An internal sever error has occurred.'
         end
       end.to raise_error Support::RetriableRequestError
+    end
+
+    it 'logs that the request is starting' do
+      operation.call('Abraham', 'Lincoln') do |method, url, _request|
+        RestClient::Request.execute(method: method, url: url)
+      end
+      expect(logger).to have_received(:info).with(/starting/)
+    end
+
+    it 'logs that the request has completed' do
+      operation.call('Abraham', 'Lincoln') do |method, url, _request|
+        RestClient::Request.execute(method: method, url: url)
+      end
+      expect(logger).to have_received(:info).with(/completed/)
+    end
+
+    it 'logs that the request failed when a request failure occurs' do
+      begin
+        operation.call('Abraham', 'Lincoln') do |method, url, _request|
+          RestClient::Request.execute(method: method, url: url)
+          raise Support::RequestError, 'An internal sever error has occurred.'
+        end
+      rescue StandardError
+        # Ignore
+      end
+      expect(logger).to have_received(:error).with(/failed/)
+    end
+
+    it 'logs that validation failed when a request fails validation' do
+      begin
+        operation.call('Abraham', nil) do |method, url, _request|
+          RestClient::Request.execute(method: method, url: url)
+        end
+      rescue StandardError
+        # Ignore
+      end
+      expect(logger).to have_received(:error).with(/validation error/)
+    end
+
+    it 'logs that an error occurred on an internal error' do
+      middleware_klass = Class.new(Object) do
+        def inputs
+          [:request]
+        end
+
+        def outputs
+          [:modified_request]
+        end
+
+        def call(_operation, _context, *_args)
+          raise StandardError, 'Something went wrong!'
+        end
+      end
+
+      middleware = middleware_klass.new
+      operation.add_middleware(middleware)
+      operation.executor.inputs << :modified_request
+
+      begin
+        operation.call('Abraham', 'Lincoln') do |method, url, _request|
+          RestClient::Request.execute(method: method, url: url)
+        end
+      rescue StandardError
+        # Ignore
+      end
+      expect(logger).to have_received(:error).with(/internal error/)
     end
   end
 end
