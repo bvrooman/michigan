@@ -11,6 +11,15 @@ module Michigan
         [:response]
       end
 
+      class RequestError < StandardError
+        attr_reader :original
+
+        def initialize(original)
+          @original = original
+          super(original.message)
+        end
+      end
+
       def initialize
         @block = nil
       end
@@ -37,7 +46,7 @@ module Michigan
           response.error = e
           response.error_message = e.message
           response.http_code = e.status if e.respond_to?(:status)
-          raise e
+          raise RequestError, e
         end
       end
     end

@@ -4,32 +4,29 @@ require 'michigan/config'
 
 module Michigan
   module ErrorMiddleware
-    class LogRequestError
+    class LogError
       def inputs
         []
       end
 
       def outputs
-        [:log_request_error]
+        [:log_error]
       end
 
       def initialize
         @logger = Michigan.config.logger
       end
 
-      def call(_operation, context, *_args)
-        return nil if context[:request_error].nil?
+      def call(operation, context, *_args)
+        return nil if context[:error].nil?
 
-        request = context[:request]
-        name = request.name
-        http_code = request.response.http_code
-
-        error = context[:request_error]
+        error = context[:error]
         error_message = error.message
+        backtrace = error.backtrace.join("\n")
 
-        str = +"#{name} failed."
-        str << " Status code: #{http_code}." if http_code
+        str = +"#{operation.name} could not be invoked due to an internal error."
         str << " Message: \"#{error_message}\"" if error_message
+        str << " Backtrace: \n#{backtrace}" if backtrace
 
         @logger.error(str)
         nil
@@ -37,3 +34,4 @@ module Michigan
     end
   end
 end
+
