@@ -18,19 +18,19 @@ module Michigan
       end
 
       def call(operation, context, *_args)
+        return nil if context[:validation_error].nil?
+
         error = context[:validation_error]
-        error_message = context[:validation_error_message]
+        error_message = error.message
+        backtrace = error.backtrace.join("\n")
 
-        if error
-          str = +"#{operation.name} could not be invoked due to a validation error."
-          str << " Error: #{error_message}" if error_message
+        str = +"#{operation.name} could not be invoked due to a validation error."
+        str << " Message: \"#{error_message}\"" if error_message
+        str << " Backtrace: \n#{backtrace}" if backtrace
 
-          @logger.error(str)
-        end
-
+        @logger.error(str)
         nil
       end
     end
   end
 end
-

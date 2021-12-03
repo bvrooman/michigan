@@ -8,7 +8,16 @@ module Michigan
       end
 
       def outputs
-        %i[validation validation_error]
+        %i[validation]
+      end
+
+      class ValidationError < StandardError
+        attr_reader :original
+
+        def initialize(original)
+          @original = original
+          super(original.message)
+        end
       end
 
       def initialize(callable)
@@ -20,9 +29,7 @@ module Michigan
         @callable.call(*args)
       rescue StandardError => e
         context[:validation] = :failed
-        context[:validation_error] = e
-        context[:validation_error_message] = e.message
-        raise e
+        raise ValidationError, e
       end
     end
   end

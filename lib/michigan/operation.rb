@@ -17,6 +17,7 @@ require_relative 'error_middleware/log_request_error'
 require_relative 'error_middleware/log_validation_error'
 require_relative 'error_middleware/propagate_error'
 require_relative 'error_middleware/propagate_request_error'
+require_relative 'error_middleware/propagate_validation_error'
 require_relative 'error_middleware/retry'
 
 module Michigan
@@ -150,6 +151,7 @@ module Michigan
       composer.add_error_middleware(ErrorMiddleware::LogError.new)
       composer.add_error_middleware(ErrorMiddleware::LogRequestError.new)
       composer.add_error_middleware(ErrorMiddleware::LogValidationError.new)
+      composer.add_error_middleware(ErrorMiddleware::PropagateValidationError.new)
 
       retries = self.class.retries || 0
       if retries >= 1

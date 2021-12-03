@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'michigan/middleware/execute'
+require 'michigan/middleware/validate'
 require 'michigan/middleware_queue'
 require 'michigan/graph/node'
 
@@ -53,26 +54,32 @@ module Michigan
     def execute(operation, context, *args)
       result = nil
 
+      # The error queue may choose to squelch any errors that arose during normal execution and allow execution to
+      # continue, or to throw an error once more.
+      #
+      # Squelching the error allows middleware in the error queue to enqueue or re-enqueue any desired middleware
+      # back into the normal queue. This will allow the normal queue to continue with the newly enqueued
+      # middleware once the error queue has completed. An example of this behaviour is implemented by the `Retry`
+      # middleware.
+      #
+      # Any errors thrown from this queue will propagate up and prevent the resumption of the normal queue
+      # execution. For example, an error may be re-raised by the `PropagateError` middleware that is intended to
+      # break the execution and propagate the error back to the client code.
+
       until call_queue.empty?
         begin
           result = call_queue.execute(operation, context, *args)
+        rescue Middleware::Validate::ValidationError => e
+          context[:validation_error] = e.original
+          error_queue.clear
+          error_queue.enqueue_middlewares(error_dependency_chain)
+          error_queue.execute(operation, context, *args)
         rescue Middleware::Execute::RequestError => e
           context[:request_error] = e.original
           error_queue.clear
           error_queue.enqueue_middlewares(error_dependency_chain)
           error_queue.execute(operation, context, *args)
         rescue StandardError => e
-          # The error queue may choose to squelch any errors that arose during normal execution and allow execution to
-          # continue, or to throw an error once more.
-          #
-          # Squelching the error allows middleware in the error queue to enqueue or re-enqueue any desired middleware
-          # back into the normal queue. This will allow the normal queue to continue with the newly enqueued
-          # middleware once the error queue has completed. An example of this behaviour is implemented by the `Retry`
-          # middleware.
-          #
-          # Any errors thrown from this queue will propagate up and prevent the resumption of the normal queue
-          # execution. For example, an error may be re-raised by the `ErrorPropagation` middleware that is intended to
-          # break the execution and propagate the error back to the client code.
           context[:error] = e
           error_queue.clear
           error_queue.enqueue_middlewares(error_dependency_chain)
