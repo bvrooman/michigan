@@ -34,4 +34,3 @@ module Michigan
     end
   end
 end
-
