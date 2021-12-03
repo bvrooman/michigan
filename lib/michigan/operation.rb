@@ -151,9 +151,9 @@ module Michigan
       composer.add_error_middleware(ErrorMiddleware::LogRequestError.new)
       composer.add_error_middleware(ErrorMiddleware::LogValidationError.new)
 
-      if self.class.retries >= 1
+      retries = self.class.retries || 0
+      if retries >= 1
         retriable_errors = self.class.retriable_errors || []
-        retries = self.class.retries || 0
         retry_delay = self.class.retry_delay || 1
         retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries, delay: retry_delay)
         composer.add_error_middleware(retry_middleware)
