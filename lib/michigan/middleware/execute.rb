@@ -24,9 +24,7 @@ module Michigan
         @block = nil
       end
 
-      def block=(block)
-        @block = block
-      end
+      attr_writer :block
 
       def call(operation, context, *_args)
         return nil unless @block

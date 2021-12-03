@@ -157,7 +157,8 @@ module Michigan
       if retries >= 1
         retriable_errors = self.class.retriable_errors || []
         retry_delay = self.class.retry_delay || 1
-        retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries, delay: retry_delay)
+        retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries,
+                                                      delay: retry_delay)
         composer.add_error_middleware(retry_middleware)
       else
         composer.add_error_middleware(ErrorMiddleware::PropagateError.new)
