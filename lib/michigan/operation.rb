@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'config'
+
 require_relative 'middleware_composer'
 
 require_relative 'middleware/authenticate'
@@ -24,17 +26,21 @@ module Michigan
   # Base class for resource operation wrappers
   class Operation
     class << self
-      attr_accessor :http_method, :base_url, :retriable_errors, :retries, :retry_delay
+      attr_accessor :http_method, :base_url,
+                    :retries, :retriable_errors, :retry_delay
     end
 
-    attr_reader :name, :url, :composer, :executor
+    attr_reader :adaptor_config,
+                :name, :url, :composer, :executor
 
     # @param url [string] the URL of the Operation instance (if different than the one in the Operation class)
-    def initialize(url = self.class.base_url)
+    def initialize(url = self.class.base_url, adaptor_config: nil)
       self.url = url
 
+      @adaptor_config = adaptor_config || Michigan.config.adaptor_config
       @composer = MiddlewareComposer.new
       @executor = Middleware::Execute.new
+
       add_default_middleware
       add_default_error_middleware
     end

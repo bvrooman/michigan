@@ -2,11 +2,13 @@
 
 require 'logger'
 
+require_relative 'adaptor'
+
 module Michigan
   class Config
     @default_config = {
-      logger: Logger.new($stdout),
-      schemas_path: ''
+      adaptor_config: AdaptorConfig.new,
+      logger: Logger.new($stdout)
     }
     @allowed_config_keys = @default_config.keys
 
@@ -17,7 +19,7 @@ module Michigan
     attr_reader :config
 
     def initialize
-      @config = OpenStruct.new Config.default_config
+      @config = OpenStruct.new(Config.default_config)
     end
 
     def configure(options)

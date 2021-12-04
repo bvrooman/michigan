@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'michigan/adaptor'
+
 module Michigan
   module Middleware
     class Execute
@@ -35,11 +37,10 @@ module Michigan
 
         begin
           exec = @block.call(operation.class.http_method, operation.url, request)
-          response.body = exec
-          response.http_code =
-            (exec.send(:code) if exec.respond_to?(:code)) ||
-            (exec.send(:status) if exec.respond_to?(:status))
-          exec
+          adaptor = Adaptor.new(exec, config: operation.adaptor_config)
+          response.body = adaptor.body
+          response.http_code = adaptor.status
+          response.body
         rescue StandardError => e
           response.error = e
           response.error_message = e.message

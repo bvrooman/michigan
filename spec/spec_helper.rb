@@ -2,7 +2,6 @@
 
 require 'bundler/setup'
 require 'michigan'
-require 'rest-client'
 require 'webmock/rspec'
 require 'logger'
 
