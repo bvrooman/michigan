@@ -35,6 +35,9 @@ RSpec.describe Michigan::Operation do
       allow(logger).to receive(:warn).and_call_original
       allow(logger).to receive(:error).and_call_original
 
+      adaptor_config = Michigan::AdaptorConfig.new(status: 'code')
+      Michigan.config.adaptor_config = adaptor_config
+
       Support::CreatePerson.retriable_errors = [Support::RetriableRequestError]
 
       stub_request(:any, operation.url).to_return(
@@ -60,15 +63,15 @@ RSpec.describe Michigan::Operation do
     end
 
     it 'executes the call block' do
-      operation.call('Abraham', 'Lincoln') do |method, url, _request|
-        RestClient::Request.execute(method: method, url: url)
+      operation.call('Abraham', 'Lincoln') do |method, url, request|
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(a_request(:post, operation.url)).to have_been_made
     end
 
     it 'returns the return value of the call block' do
-      report = operation.call('Abraham', 'Lincoln') do |method, url, _request|
-        RestClient::Request.execute(method: method, url: url)
+      report = operation.call('Abraham', 'Lincoln') do |method, url, request|
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(report).to eq 'CALL SUCCEEDED'
     end
@@ -77,7 +80,7 @@ RSpec.describe Michigan::Operation do
       r = nil
       operation.call('Abraham', 'Lincoln') do |method, url, request|
         r = request
-        RestClient::Request.execute(method: method, url: url)
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(r.id).to eq request_id
     end
@@ -86,7 +89,7 @@ RSpec.describe Michigan::Operation do
       r = nil
       operation.call('Abraham', 'Lincoln') do |method, url, request|
         r = request
-        RestClient::Request.execute(method: method, url: url)
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(r.name).to eq "Request #{request_id} - Support::CreatePerson (post https://people.com/person)"
     end
@@ -111,7 +114,7 @@ RSpec.describe Michigan::Operation do
       r = nil
       operation.call('Abraham', 'Lincoln') do |method, url, request|
         r = request
-        RestClient::Request.execute(method: method, url: url)
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(r.response.body).to eq 'CALL SUCCEEDED'
     end
@@ -192,8 +195,8 @@ RSpec.describe Michigan::Operation do
 
     it 'raises the expected error on non-retriable errors' do
       expect do
-        operation.call('Abraham', 'Lincoln') do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', 'Lincoln') do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
           raise Support::RequestError, 'An internal sever error has occurred.'
         end
       end.to raise_error Support::RequestError
@@ -201,8 +204,8 @@ RSpec.describe Michigan::Operation do
 
     it 'retries on retriable errors' do
       begin
-        operation.call('Abraham', 'Lincoln') do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', 'Lincoln') do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
           raise Support::RetriableRequestError, 'An internal sever error has occurred.'
         end
       rescue StandardError
@@ -214,31 +217,31 @@ RSpec.describe Michigan::Operation do
 
     it 'raises the expected error on retriable errors' do
       expect do
-        operation.call('Abraham', 'Lincoln') do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', 'Lincoln') do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
           raise Support::RetriableRequestError, 'An internal sever error has occurred.'
         end
       end.to raise_error Support::RetriableRequestError
     end
 
     it 'logs that the request is starting' do
-      operation.call('Abraham', 'Lincoln') do |method, url, _request|
-        RestClient::Request.execute(method: method, url: url)
+      operation.call('Abraham', 'Lincoln') do |method, url, request|
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(logger).to have_received(:info).with(/starting/)
     end
 
     it 'logs that the request has completed' do
-      operation.call('Abraham', 'Lincoln') do |method, url, _request|
-        RestClient::Request.execute(method: method, url: url)
+      operation.call('Abraham', 'Lincoln') do |method, url, request|
+        Net::HTTP.send(method, URI(url), request.headers)
       end
       expect(logger).to have_received(:info).with(/completed/)
     end
 
     it 'logs that the request failed when a request failure occurs' do
       begin
-        operation.call('Abraham', 'Lincoln') do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', 'Lincoln') do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
           raise Support::RequestError, 'An internal sever error has occurred.'
         end
       rescue StandardError
@@ -249,8 +252,8 @@ RSpec.describe Michigan::Operation do
 
     it 'logs that validation failed when a request fails validation' do
       begin
-        operation.call('Abraham', nil) do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', nil) do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
         end
       rescue StandardError
         # Ignore
@@ -278,8 +281,8 @@ RSpec.describe Michigan::Operation do
       operation.executor.inputs << :modified_request
 
       begin
-        operation.call('Abraham', 'Lincoln') do |method, url, _request|
-          RestClient::Request.execute(method: method, url: url)
+        operation.call('Abraham', 'Lincoln') do |method, url, request|
+          Net::HTTP.send(method, URI(url), request.headers)
         end
       rescue StandardError
         # Ignore
