@@ -28,10 +28,20 @@ module Michigan
     class << self
       attr_accessor :http_method, :base_url,
                     :retries, :retriable_errors, :retry_delay
+
+      def inherited(subclass)
+        super
+        subclass.http_method = http_method
+        subclass.base_url = base_url
+        subclass.retries = retries
+        subclass.retriable_errors = retriable_errors
+        subclass.retry_delay = retry_delay
+      end
     end
 
     attr_reader :adaptor_config,
-                :name, :url, :composer, :executor
+                :name, :url,
+                :composer, :executor
 
     attr_accessor :http_method,
                   :retries, :retriable_errors, :retry_delay
@@ -41,6 +51,7 @@ module Michigan
       self.url = url
 
       @adaptor_config = adaptor_config || Michigan.config.adaptor_config
+
       @composer = MiddlewareComposer.new
       @executor = Middleware::Execute.new
 
