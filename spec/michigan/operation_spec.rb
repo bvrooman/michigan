@@ -299,4 +299,40 @@ RSpec.describe Michigan::Operation do
       expect(logger).to have_received(:error).with(/internal error/)
     end
   end
+
+  describe 'subclasses' do
+    let(:base_class) do
+      klass = Class.new(described_class)
+      klass.http_method = :post
+      klass.base_url = 'https://www.website.com'
+      klass.retries = 3
+      klass.retriable_errors = [Support::RetriableRequestError]
+      klass.retry_delay = 1
+      klass
+    end
+
+    let(:child_class) do
+      klass = Class.new(base_class)
+      klass.base_url = "#{base_class.base_url}/namespace"
+      klass
+    end
+
+    let(:grandchild_class) { Class.new(child_class) }
+
+    it 'inherit superclass config' do
+      instance = child_class.new
+      expect(instance.http_method).to eq :post
+      expect(instance.url).to eq 'https://www.website.com/namespace'
+      expect(instance.retries).to eq 3
+      expect(instance.retriable_errors).to eq [Support::RetriableRequestError]
+      expect(instance.retry_delay).to eq 1
+
+      instance = grandchild_class.new
+      expect(instance.http_method).to eq :post
+      expect(instance.url).to eq 'https://www.website.com/namespace'
+      expect(instance.retries).to eq 3
+      expect(instance.retriable_errors).to eq [Support::RetriableRequestError]
+      expect(instance.retry_delay).to eq 1
+    end
+  end
 end
