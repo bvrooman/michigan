@@ -33,6 +33,9 @@ module Michigan
     attr_reader :adaptor_config,
                 :name, :url, :composer, :executor
 
+    attr_accessor :http_method,
+                  :retries, :retriable_errors, :retry_delay
+
     # @param url [string] the URL of the Operation instance (if different than the one in the Operation class)
     def initialize(url = self.class.base_url, adaptor_config: nil)
       self.url = url
@@ -40,6 +43,13 @@ module Michigan
       @adaptor_config = adaptor_config || Michigan.config.adaptor_config
       @composer = MiddlewareComposer.new
       @executor = Middleware::Execute.new
+
+      @http_method = self.class.http_method
+      @retries = self.class.retries || 0
+      @retriable_errors = self.class.retriable_errors || []
+      @retry_delay = self.class.retry_delay || 1
+
+      yield self if block_given?
 
       add_default_middleware
       add_default_error_middleware
@@ -94,11 +104,11 @@ module Michigan
     #     p = request.payload
     #     RestClient::Request.execute(method: method, url: url, headers: h, payload: p)
     #   end
-    def call(*args, &block)
+    def call(*args, **kwargs, &block)
       @executor.block = block
 
       context = {}
-      composer.call(self, context, *args)
+      composer.call(self, context, *args, **kwargs)
     end
 
     # Stubs
@@ -159,11 +169,12 @@ module Michigan
       composer.add_error_middleware(ErrorMiddleware::LogValidationError.new)
       composer.add_error_middleware(ErrorMiddleware::PropagateValidationError.new)
 
-      retries = self.class.retries || 0
+      retries = self.retries
       if retries >= 1
-        retriable_errors = self.class.retriable_errors || []
-        retry_delay = self.class.retry_delay || 1
-        retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors, retries: retries,
+        retriable_errors = self.retriable_errors
+        retry_delay = self.retry_delay
+        retry_middleware = ErrorMiddleware::Retry.new(retriable_errors: retriable_errors,
+                                                      retries: retries,
                                                       delay: retry_delay)
         composer.add_error_middleware(retry_middleware)
       else

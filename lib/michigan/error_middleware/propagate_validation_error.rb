@@ -7,7 +7,7 @@ module Michigan
         %i[log_validation_error]
       end
 
-      def call(_operation, context, *_args)
+      def call(_operation, context, *_args, **_kwargs)
         error = context[:validation_error]
         raise error unless error.nil?
       end

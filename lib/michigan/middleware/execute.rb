@@ -28,7 +28,7 @@ module Michigan
 
       attr_writer :block
 
-      def call(operation, context, *_args)
+      def call(operation, context, *_args, **_kwargs)
         return nil unless @block
 
         request = context[:request]
@@ -36,7 +36,7 @@ module Michigan
         context[:response] = response
 
         begin
-          exec = @block.call(operation.class.http_method, operation.url, request)
+          exec = @block.call(operation.http_method, operation.url, request)
           adaptor = Adaptor.new(exec, config: operation.adaptor_config)
           response.body = adaptor.body
           response.http_code = adaptor.status

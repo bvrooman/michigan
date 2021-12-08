@@ -24,7 +24,13 @@ RSpec.describe Michigan::Operation do
   end
 
   describe '#call' do
-    subject(:operation) { Support::CreatePerson.new }
+    subject(:operation) do
+      operation = Support::CreatePerson.new do |op|
+        op.retries = 3
+        op.retriable_errors = [Support::RetriableRequestError]
+      end
+      operation
+    end
 
     let(:logger) { Logger.new($stdout) }
     let(:request_id) { '1-2-3' }
@@ -38,16 +44,10 @@ RSpec.describe Michigan::Operation do
       adaptor_config = Michigan::AdaptorConfig.new(status: 'code')
       Michigan.config.adaptor_config = adaptor_config
 
-      Support::CreatePerson.retriable_errors = [Support::RetriableRequestError]
-
       stub_request(:any, operation.url).to_return(
         status: 200,
         body: 'CALL SUCCEEDED'
       )
-    end
-
-    after do
-      Support::CreatePerson.retriable_errors = []
     end
 
     it 'passes the correct method to its block' do
@@ -70,10 +70,10 @@ RSpec.describe Michigan::Operation do
     end
 
     it 'returns the return value of the call block' do
-      report = operation.call('Abraham', 'Lincoln') do |method, url, request|
+      response = operation.call('Abraham', 'Lincoln') do |method, url, request|
         Net::HTTP.send(method, URI(url), request.headers)
       end
-      expect(report).to eq 'CALL SUCCEEDED'
+      expect(response).to eq 'CALL SUCCEEDED'
     end
 
     it 'populates the request id' do
@@ -105,6 +105,15 @@ RSpec.describe Michigan::Operation do
     it 'populates the request payload' do
       operation.call('Abraham', 'Lincoln') do |_method, _url, request|
         expected_payload = { first_name: 'Abraham', last_name: 'Lincoln' }
+        payload = request.payload
+        expect(payload).to eq expected_payload
+      end
+    end
+
+    it 'populates the request payload when using keyword arguments' do
+      operation = Support::UpdatePerson.new
+      operation.call(first_name: 'Abe') do |_method, _url, request|
+        expected_payload = { first_name: 'Abe' }
         payload = request.payload
         expect(payload).to eq expected_payload
       end

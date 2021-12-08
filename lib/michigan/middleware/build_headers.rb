@@ -15,8 +15,8 @@ module Michigan
         @callable = callable
       end
 
-      def call(_operation, context, *args)
-        context[:headers] = @callable.call(context, *args)
+      def call(_operation, context, *args, **kwargs)
+        context[:headers] = @callable.call(context, *args, **kwargs)
       end
     end
   end

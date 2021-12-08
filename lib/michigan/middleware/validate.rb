@@ -24,9 +24,9 @@ module Michigan
         @callable = callable
       end
 
-      def call(_operation, context, *args)
+      def call(_operation, context, *args, **kwargs)
         context[:validation] = :passed
-        @callable.call(*args)
+        @callable.call(*args, **kwargs)
       rescue StandardError => e
         context[:validation] = :failed
         raise ValidationError, e

@@ -15,8 +15,8 @@ module Michigan
         @callable = callable
       end
 
-      def call(_operation, context, *args)
-        context[:authentication] = @callable.call(*args)
+      def call(_operation, context, *args, **kwargs)
+        context[:authentication] = @callable.call(*args, **kwargs)
       end
     end
   end
