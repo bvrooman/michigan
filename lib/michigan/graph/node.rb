@@ -33,8 +33,8 @@ module Michigan
         dependency_graph.resolve_dependencies
       end
 
-      def call(*args)
-        producer.call(*args)
+      def call(*args, **kwargs)
+        producer.call(*args, **kwargs)
       end
 
       private

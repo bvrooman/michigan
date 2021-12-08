@@ -17,7 +17,7 @@ module Michigan
         @logger = Michigan.config.logger
       end
 
-      def call(_operation, context, *_args)
+      def call(_operation, context, *_args, **_kwargs)
         return nil if context[:request_error].nil?
 
         request = context[:request]

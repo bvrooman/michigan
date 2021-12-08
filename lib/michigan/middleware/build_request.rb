@@ -42,7 +42,7 @@ module Michigan
         [:request]
       end
 
-      def call(operation, context, *_args)
+      def call(operation, context, *_args, **_kwargs)
         # Read the inputs from the context
         authentication =  context[:authentication]
         headers =         context[:headers]
@@ -54,7 +54,7 @@ module Michigan
           authentication: authentication,
           headers: headers,
           id: id,
-          method: operation.class.http_method,
+          method: operation.http_method,
           name: name,
           payload: payload,
           url: operation.url

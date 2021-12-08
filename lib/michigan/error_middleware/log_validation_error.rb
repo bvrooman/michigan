@@ -17,7 +17,7 @@ module Michigan
         @logger = Michigan.config.logger
       end
 
-      def call(operation, context, *_args)
+      def call(operation, context, *_args, **_kwargs)
         return nil if context[:validation_error].nil?
 
         error = context[:validation_error]

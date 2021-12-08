@@ -25,7 +25,7 @@ module Michigan
         @logger = Michigan.config.logger
       end
 
-      def call(operation, context, *_args)
+      def call(operation, context, *_args, **_kwargs)
         return nil if retries <= 0
 
         context[:retries] ||= 0

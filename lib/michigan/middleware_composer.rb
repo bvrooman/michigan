@@ -33,10 +33,10 @@ module Michigan
       set_error_middleware(name, node)
     end
 
-    def call(operation, context, *args)
+    def call(operation, context, *args, **kwargs)
       call_queue.clear
       call_queue.enqueue_middlewares(dependency_chain)
-      execute(operation, context, *args)
+      execute(operation, context, *args, **kwargs)
     end
 
     private
@@ -51,7 +51,7 @@ module Michigan
       @error_dependency_chain = nil # Allow `error_dependency_chain` to be rememoized
     end
 
-    def execute(operation, context, *args)
+    def execute(operation, context, *args, **kwargs)
       result = nil
 
       # The error queue may choose to squelch any errors that arose during normal execution and allow execution to
@@ -68,22 +68,22 @@ module Michigan
 
       until call_queue.empty?
         begin
-          result = call_queue.execute(operation, context, *args)
+          result = call_queue.execute(operation, context, *args, **kwargs)
         rescue Middleware::Validate::ValidationError => e
           context[:validation_error] = e.original
           error_queue.clear
           error_queue.enqueue_middlewares(error_dependency_chain)
-          error_queue.execute(operation, context, *args)
+          error_queue.execute(operation, context, *args, **kwargs)
         rescue Middleware::Execute::RequestError => e
           context[:request_error] = e.original
           error_queue.clear
           error_queue.enqueue_middlewares(error_dependency_chain)
-          error_queue.execute(operation, context, *args)
+          error_queue.execute(operation, context, *args, **kwargs)
         rescue StandardError => e
           context[:error] = e
           error_queue.clear
           error_queue.enqueue_middlewares(error_dependency_chain)
-          error_queue.execute(operation, context, *args)
+          error_queue.execute(operation, context, *args, **kwargs)
         end
       end
 

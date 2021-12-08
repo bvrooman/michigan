@@ -30,11 +30,11 @@ module Michigan
       queue.empty?
     end
 
-    def execute(operation, context, *args)
+    def execute(operation, context, *args, **kwargs)
       final = nil
       until queue.empty?
         callable = queue.shift
-        result = execute_callable(callable, operation, context, *args)
+        result = execute_callable(callable, operation, context, *args, **kwargs)
         unless result.nil?
           context[:result] = result
           final = result
@@ -43,9 +43,9 @@ module Michigan
       final
     end
 
-    def execute_callable(callable, operation, context, *args)
+    def execute_callable(callable, operation, context, *args, **kwargs)
       context[:current_middleware] = callable
-      callable.call(operation, context, *args)
+      callable.call(operation, context, *args, **kwargs)
     rescue StandardError => e
       context[:failed_middleware] = callable
       raise e
